@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Eaglercraft Server Checker</title>
+  <!-- Pixel font -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    body {
+      font-family: 'Press Start 2P', cursive;
+      text-align: center;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+
+      /* Minecraft dirt background */
+      background-image: url('https://i.imgur.com/z4oCAyo.jpeg');
+      background-size: cover;       /* scale image to cover viewport */
+      background-repeat: no-repeat;
+      background-position: center;  /* center the image */
+      background-attachment: fixed; /* stay fixed while scrolling */
+    }
+
+    h2 {
+      color: #55ff55;
+      text-shadow: 2px 2px #000;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 12px;
+      font-size: 14px;
+      margin: 6px;
+      border-radius: 4px;
+      border: 2px solid #000;
+      font-family: 'Press Start 2P', cursive;
+    }
+
+    input {
+      width: 380px;
+      background: #333;
+      color: #fff;
+    }
+
+    button {
+      background-color: #3c8527;
+      color: white;
+      cursor: pointer;
+      box-shadow: 2px 2px #000;
+    }
+
+    button:hover {
+      background-color: #2b5e1c;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 16px;
+      text-shadow: 1px 1px #000;
+    }
+
+    #logs {
+      margin-top: 30px;
+      text-align: left;
+      max-width: 650px;
+      margin-left: auto;
+      margin-right: auto;
+      background: rgba(0,0,0,0.6);
+      padding: 15px;
+      border-radius: 6px;
+      font-size: 12px;
+      max-height: 250px;
+      overflow-y: auto;
+      border: 2px solid #55ff55;
+    }
+
+    #logs h3 {
+      margin-top: 0;
+      text-align: center;
+      color: #ffaa00;
+      text-shadow: 1px 1px #000;
+    }
+
+    .log-entry { margin-bottom: 6px; }
+    .online { color: #55ff55; }
+    .offline { color: #ff5555; }
+    .timeout { color: #ffaa00; }
+  </style>
+</head>
+<body>
+  <h2>🌍 Eaglercraft Server Checker</h2>
+  <input type="text" id="serverInput" placeholder="Enter ws:// or wss:// server URL">
+  <button onclick="checkServer()">Check</button>
+  <div id="result"></div>
+
+  <div id="logs">
+    <h3>Server Logs</h3>
+    <div id="logEntries"></div>
+  </div>
+
+  <script>
+    function logMessage(msg, type="") {
+      const logDiv = document.getElementById("logEntries");
+      const entry = document.createElement("div");
+      entry.className = "log-entry " + type;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logDiv.prepend(entry);
+    }
+
+    function checkServer() {
+      const url = document.getElementById("serverInput").value.trim();
+      const resultDiv = document.getElementById("result");
+
+      if (!url) {
+        resultDiv.innerHTML = "<span class='timeout'>⚠️ Please enter a server URL.</span>";
+        logMessage("⚠️ No URL entered", "timeout");
+        return;
+      }
+
+      resultDiv.innerHTML = "<span class='timeout'>⏳ Checking...</span>";
+      logMessage(`Attempting to connect to ${url}...`, "timeout");
+
+      try {
+        const startTime = Date.now();
+        const socket = new WebSocket(url);
+        let timeout = setTimeout(() => {
+          socket.close();
+          resultDiv.innerHTML = `<span class='timeout'>❌ ${url} did not respond (timeout).</span>`;
+          logMessage(`❌ Timeout while connecting to ${url}`, "timeout");
+        }, 5000);
+
+        socket.onopen = () => {
+          clearTimeout(timeout);
+          const pingTime = Date.now() - startTime;
+          resultDiv.innerHTML = `<span class='online'>✅ ${url} is ONLINE! (Ping: ${pingTime} ms)</span>`;
+          logMessage(`✅ Connected to ${url} (Ping: ${pingTime} ms)`, "online");
+          socket.close();
+        };
+
+        socket.onerror = () => {
+          clearTimeout(timeout);
+          resultDiv.innerHTML = `<span class='offline'>❌ ${url} is OFFLINE or unreachable.</span>`;
+          logMessage(`❌ Failed to connect to ${url}`, "offline");
+        };
+      } catch (err) {
+        resultDiv.innerHTML = `<span class='offline'>❌ Invalid URL or cannot connect.</span>`;
+        logMessage(`❌ Invalid URL: ${url}`, "offline");
+      }
+    }
+  </script>
+</body>
+</html>
